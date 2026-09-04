@@ -131,8 +131,8 @@ with st.sidebar:
         st.session_state.messages = []
         st.rerun()
         
-    st.markdown("---")
-    st.header("Configuration")
+    # Spacer to push the model selector to the bottom left corner
+    st.markdown('<div style="height: 70vh;"></div>', unsafe_allow_html=True)
     
     selected_model = st.selectbox("AI Model", ["llama3", "phi3", "mistral", "gemma2"], index=0)
     pipeline = get_pipeline(selected_model)
