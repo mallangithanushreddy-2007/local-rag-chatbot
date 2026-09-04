@@ -12,13 +12,13 @@ def inject_custom_css():
 footer {visibility: hidden;}
 header {visibility: hidden;}
 
-/* Custom typography */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap');
+/* Custom typography - Google Sans */
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&display=swap');
 html, body, [class*="css"] {
-    font-family: 'Inter', sans-serif !important;
+    font-family: 'DM Sans', sans-serif !important;
 }
 
-/* Chat message bubbles: Flat and seamless like ChatGPT */
+/* Chat message bubbles: Flat and seamless */
 [data-testid="stChatMessage"] {
     background-color: transparent !important;
     border: none !important;
@@ -32,22 +32,34 @@ html, body, [class*="css"] {
     background-color: transparent !important;
 }
 
-/* Make the chat input clean */
+/* Make the chat input clean and Gemini-like */
 [data-testid="stChatInput"] {
-    border-radius: 20px !important;
-    background-color: #2f2f2f !important;
-    border: 1px solid #444 !important;
+    border-radius: 32px !important;
+    background-color: #1e1f20 !important;
+    border: none !important;
+    padding: 12px 16px !important;
 }
 
-/* Ensure New Conversation button text is readable (black) */
+/* Ensure New Conversation button text is readable */
 div.stButton > button[kind="primary"] {
-    background-color: #ffffff !important;
-    color: #000000 !important;
-    border-color: #ffffff !important;
+    background-color: #1e1f20 !important;
+    color: #e3e3e3 !important;
+    border-color: #444746 !important;
+    border-radius: 20px !important;
 }
 div.stButton > button[kind="primary"] * {
-    color: #000000 !important;
-    font-weight: 600 !important;
+    color: #e3e3e3 !important;
+    font-weight: 500 !important;
+}
+
+/* Gemini Gradient Title */
+.gemini-title {
+    font-size: 48px;
+    font-weight: 500;
+    background: -webkit-linear-gradient(74deg, #4285f4 0, #9b72cb 9%, #d96570 20%, #d96570 24%, #9b72cb 35%, #4285f4 44%, #9b72cb 50%, #d96570 56%, #131314 75%, #131314 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin-bottom: 8px;
 }
 </style>
 """, unsafe_allow_html=True)
@@ -56,8 +68,8 @@ inject_custom_css()
 
 # Only show title if chat is empty to keep it clean
 if "messages" not in st.session_state or len(st.session_state.messages) <= 1:
-    st.title("Local RAG Assistant")
-    st.markdown("Upload documents in the sidebar or just ask a question.")
+    st.markdown('<h1 class="gemini-title">Hello, Thanush</h1>', unsafe_allow_html=True)
+    st.markdown('<h2 style="color: #444746; font-size: 32px; font-weight: 500; margin-top: -15px;">How can I help you today?</h2>', unsafe_allow_html=True)
 
 @st.cache_resource
 def get_pipeline(model_name):
