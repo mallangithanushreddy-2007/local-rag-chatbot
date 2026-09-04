@@ -86,29 +86,6 @@ with st.sidebar:
     selected_model = st.selectbox("AI Model", ["llama3", "phi3", "mistral", "gemma2"], index=0)
     pipeline = get_pipeline(selected_model)
     
-    uploaded_files = st.file_uploader("Upload PDF or TXT documents", type=["pdf", "txt"], accept_multiple_files=True)
-    
-    current_files = [f.name for f in uploaded_files] if uploaded_files else []
-    if "processed_files" not in st.session_state:
-        st.session_state.processed_files = []
-        
-    if uploaded_files and current_files != st.session_state.processed_files:
-        st.session_state.processed_files = current_files
-        
-        with st.spinner("Clearing old memory and processing new documents..."):
-            pipeline.clear_database()
-            os.makedirs("data", exist_ok=True)
-            for uploaded_file in uploaded_files:
-                file_path = os.path.join("data", uploaded_file.name)
-                with open(file_path, "wb") as f:
-                    f.write(uploaded_file.getbuffer())
-                    
-            success = pipeline.load_and_process_documents()
-            if success:
-                st.success("New documents processed and ready!")
-            else:
-                st.warning("No readable text found! Make sure your PDFs contain real text and aren't just scanned images.")
-
     if st.button("Force Reprocess Database"):
         with st.spinner("Re-processing all documents in 'data/' folder..."):
             success = pipeline.load_and_process_documents()
@@ -119,7 +96,7 @@ with st.sidebar:
                 
     st.markdown("---")
     st.markdown("### How to use:")
-    st.markdown("1. Drag and drop `.pdf` or `.txt` files into the uploader above.")
+    st.markdown("1. Attach `.pdf` or `.txt` files using the paperclip icon in the input box.")
     st.markdown("2. The chatbot will automatically read them and update its memory.")
     st.markdown("3. Type your questions below!")
     st.markdown("4. Ensure **Ollama** is running locally.")
@@ -138,26 +115,39 @@ for message in st.session_state.messages:
     with st.chat_message(message["role"]):
         st.markdown(message["content"])
 
-# React to user input
-if prompt := st.chat_input("Ask a question about your documents..."):
-    # Display user message in chat message container
-    st.chat_message("user").markdown(prompt)
-    # Add user message to chat history
-    st.session_state.messages.append({"role": "user", "content": prompt})
+# Chat input with inline file uploader
+prompt = st.chat_input("Ask a question about your documents...", accept_file=True, file_type=["pdf", "txt"])
 
-    # Get response
-    with st.chat_message("assistant"):
-        # Format chat history for LangChain
-        chat_history = []
-        # exclude the current prompt which was just appended to the end of the messages list
-        for msg in st.session_state.messages[:-1]:
-            if msg["role"] == "user":
-                chat_history.append(("human", msg["content"]))
-            elif msg["role"] == "assistant":
-                chat_history.append(("assistant", msg["content"]))
-                
-        response_stream = pipeline.answer_question_stream(prompt, chat_history)
-        response = st.write_stream(response_stream)
+if prompt:
+    # Handle files if they were attached
+    if getattr(prompt, "files", None):
+        with st.spinner("Processing attached documents..."):
+            os.makedirs("data", exist_ok=True)
+            for file in prompt.files:
+                file_path = os.path.join("data", file.name)
+                with open(file_path, "wb") as f:
+                    f.write(file.getbuffer())
             
-    # Add assistant response to chat history
-    st.session_state.messages.append({"role": "assistant", "content": response})
+            success = pipeline.load_and_process_documents()
+            if success:
+                st.toast("Documents processed successfully!", icon="✅")
+            else:
+                st.toast("Failed to process documents.", icon="❌")
+    
+    # Handle text message
+    if getattr(prompt, "text", None):
+        st.chat_message("user").markdown(prompt.text)
+        st.session_state.messages.append({"role": "user", "content": prompt.text})
+
+        with st.chat_message("assistant"):
+            chat_history = []
+            for msg in st.session_state.messages[:-1]:
+                if msg["role"] == "user":
+                    chat_history.append(("human", msg["content"]))
+                elif msg["role"] == "assistant":
+                    chat_history.append(("assistant", msg["content"]))
+                    
+            response_stream = pipeline.answer_question_stream(prompt.text, chat_history)
+            response = st.write_stream(response_stream)
+                
+        st.session_state.messages.append({"role": "assistant", "content": response})
