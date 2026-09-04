@@ -137,13 +137,7 @@ with st.sidebar:
     selected_model = st.selectbox("AI Model", ["llama3", "phi3", "mistral", "gemma2"], index=0)
     pipeline = get_pipeline(selected_model)
     
-    if st.button("Force Reprocess Database"):
-        with st.spinner("Re-processing all documents in 'data/' folder..."):
-            success = pipeline.load_and_process_documents()
-            if success:
-                st.success("Database successfully updated!")
-            else:
-                st.warning("No readable text found!")
+
 
 # Invisible 1x1 images used to uniquely identify message types in CSS without displaying an avatar
 USER_AVATAR = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII="
