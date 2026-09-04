@@ -29,7 +29,7 @@ html, body, [class*="css"] {
 
 /* Widen the main chat container and add custom gradient */
 .stApp {
-    background: linear-gradient(to top, rgba(168, 199, 250, 0.4) 0%, rgba(255, 255, 255, 1) 50%, rgba(255, 255, 255, 1) 100%) !important;
+    background: linear-gradient(to top, rgba(0, 153, 255, 0.8) 0%, rgba(255, 255, 255, 1) 50%, rgba(255, 255, 255, 1) 100%) !important;
 }
 
 .stApp > header {
@@ -102,11 +102,8 @@ with st.sidebar:
 # Initialize chat history
 if "messages" not in st.session_state:
     st.session_state.messages = []
-    # Try loading existing db on startup
-    if pipeline.load_existing_vectorstore():
-        st.session_state.messages.append({"role": "assistant", "content": "I've loaded the existing knowledge base. How can I help you?", "avatar": "✨"})
-    else:
-        st.session_state.messages.append({"role": "assistant", "content": "I'm ready! You can attach PDFs using the paperclip icon, or just ask me general questions right away.", "avatar": "✨"})
+    # Just load the DB silently in the background
+    pipeline.load_existing_vectorstore()
 
 # Display chat messages from history on app rerun
 for message in st.session_state.messages:
