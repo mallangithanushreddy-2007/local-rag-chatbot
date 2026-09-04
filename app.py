@@ -2,7 +2,7 @@ import streamlit as st
 import os
 from rag_pipeline import LocalRAGPipeline
 
-st.set_page_config(page_title="Local RAG Chatbot", page_icon="🤖")
+st.set_page_config(page_title="Local RAG Chatbot", page_icon="✨")
 
 def inject_custom_css():
     st.markdown("""
@@ -27,28 +27,33 @@ html, body, [class*="css"] {
     margin-bottom: 0px !important;
 }
 
-/* Widen the main chat container for better readability */
+/* Widen the main chat container and add custom gradient */
+.stApp {
+    background: linear-gradient(to top, rgba(168, 199, 250, 0.4) 0%, rgba(255, 255, 255, 1) 50%, rgba(255, 255, 255, 1) 100%) !important;
+}
+
 .stApp > header {
     background-color: transparent !important;
 }
 
-/* Make the chat input clean and Gemini-like */
+/* Make the chat input clean for light mode */
 [data-testid="stChatInput"] {
     border-radius: 32px !important;
-    background-color: #1e1f20 !important;
-    border: none !important;
+    background-color: #ffffff !important;
+    border: 1px solid #e0e0e0 !important;
     padding: 12px 16px !important;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.05) !important;
 }
 
 /* Ensure New Conversation button text is readable */
 div.stButton > button[kind="primary"] {
-    background-color: #1e1f20 !important;
-    color: #e3e3e3 !important;
-    border-color: #444746 !important;
+    background-color: #ffffff !important;
+    color: #1f1f1f !important;
+    border-color: #d2d2d2 !important;
     border-radius: 20px !important;
 }
 div.stButton > button[kind="primary"] * {
-    color: #e3e3e3 !important;
+    color: #1f1f1f !important;
     font-weight: 500 !important;
 }
 
@@ -93,26 +98,20 @@ with st.sidebar:
                 st.success("Database successfully updated!")
             else:
                 st.warning("No readable text found!")
-                
-    st.markdown("---")
-    st.markdown("### How to use:")
-    st.markdown("1. Attach `.pdf` or `.txt` files using the paperclip icon in the input box.")
-    st.markdown("2. The chatbot will automatically read them and update its memory.")
-    st.markdown("3. Type your questions below!")
-    st.markdown("4. Ensure **Ollama** is running locally.")
 
 # Initialize chat history
 if "messages" not in st.session_state:
     st.session_state.messages = []
     # Try loading existing db on startup
     if pipeline.load_existing_vectorstore():
-        st.session_state.messages.append({"role": "assistant", "content": "I've loaded the existing knowledge base. How can I help you?"})
+        st.session_state.messages.append({"role": "assistant", "content": "I've loaded the existing knowledge base. How can I help you?", "avatar": "✨"})
     else:
-        st.session_state.messages.append({"role": "assistant", "content": "I'm ready! You can upload PDFs to chat with them, or just ask me general questions right away."})
+        st.session_state.messages.append({"role": "assistant", "content": "I'm ready! You can attach PDFs using the paperclip icon, or just ask me general questions right away.", "avatar": "✨"})
 
 # Display chat messages from history on app rerun
 for message in st.session_state.messages:
-    with st.chat_message(message["role"]):
+    avatar = message.get("avatar", None)
+    with st.chat_message(message["role"], avatar=avatar):
         st.markdown(message["content"])
 
 # Chat input with inline file uploader
@@ -139,7 +138,7 @@ if prompt:
         st.chat_message("user").markdown(prompt.text)
         st.session_state.messages.append({"role": "user", "content": prompt.text})
 
-        with st.chat_message("assistant"):
+        with st.chat_message("assistant", avatar="✨"):
             chat_history = []
             for msg in st.session_state.messages[:-1]:
                 if msg["role"] == "user":
@@ -150,4 +149,4 @@ if prompt:
             response_stream = pipeline.answer_question_stream(prompt.text, chat_history)
             response = st.write_stream(response_stream)
                 
-        st.session_state.messages.append({"role": "assistant", "content": response})
+        st.session_state.messages.append({"role": "assistant", "content": response, "avatar": "✨"})
