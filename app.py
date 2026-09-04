@@ -18,13 +18,59 @@ html, body, [class*="css"] {
     font-family: 'DM Sans', sans-serif !important;
 }
 
-/* Chat message bubbles: Flat and seamless */
+/* Chat message bubbles: Custom Left/Right Layout */
 [data-testid="stChatMessage"] {
     background-color: transparent !important;
     border: none !important;
     box-shadow: none !important;
-    padding: 1.5rem !important;
-    margin-bottom: 0px !important;
+    padding: 0 !important;
+    margin-bottom: 24px !important;
+    display: flex !important;
+    width: 100% !important;
+}
+
+/* Hide the avatar container completely */
+[data-testid="stChatMessageAvatar"] {
+    display: none !important;
+}
+
+/* User Message Bubble (Left, Gray) */
+/* Targets the 1x1 PNG */
+[data-testid="stChatMessage"]:has(img[src*="image/png"]) {
+    justify-content: flex-start !important;
+}
+[data-testid="stChatMessage"]:has(img[src*="image/png"]) [data-testid="stChatMessageContent"] {
+    background-color: #f0f2f6 !important;
+    color: #1f1f1f !important;
+    border-radius: 18px !important;
+    border-bottom-left-radius: 4px !important;
+    padding: 12px 16px !important;
+    max-width: 80% !important;
+    flex-grow: 0 !important;
+}
+
+/* Assistant Message Bubble (Right, Solid Blue) */
+/* Targets the 1x1 GIF */
+[data-testid="stChatMessage"]:has(img[src*="image/gif"]) {
+    flex-direction: row-reverse !important;
+}
+[data-testid="stChatMessage"]:has(img[src*="image/gif"]) [data-testid="stChatMessageContent"] {
+    background-color: #4285f4 !important;
+    color: #ffffff !important;
+    border-radius: 18px !important;
+    border-bottom-right-radius: 4px !important;
+    padding: 12px 16px !important;
+    max-width: 80% !important;
+    flex-grow: 0 !important;
+}
+
+/* Ensure text inside assistant bubble stays readable */
+[data-testid="stChatMessage"]:has(img[src*="image/gif"]) p {
+    color: #ffffff !important;
+}
+[data-testid="stChatMessage"]:has(img[src*="image/gif"]) code {
+    color: #1f1f1f !important;
+    background-color: rgba(255, 255, 255, 0.8) !important;
 }
 
 /* Widen the main chat container and add custom gradient */
@@ -99,6 +145,10 @@ with st.sidebar:
             else:
                 st.warning("No readable text found!")
 
+# Invisible 1x1 images used to uniquely identify message types in CSS without displaying an avatar
+USER_AVATAR = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII="
+ASSISTANT_AVATAR = "data:image/gif;base64,R0lGODlhAQABAIAAAP///wAAACH5BAEAAAAALAAAAAABAAEAAAICRAEAOw=="
+
 # Initialize chat history
 if "messages" not in st.session_state:
     st.session_state.messages = []
@@ -107,7 +157,8 @@ if "messages" not in st.session_state:
 
 # Display chat messages from history on app rerun
 for message in st.session_state.messages:
-    avatar = message.get("avatar", None)
+    # Use the transparent image based on role
+    avatar = USER_AVATAR if message["role"] == "user" else ASSISTANT_AVATAR
     with st.chat_message(message["role"], avatar=avatar):
         st.markdown(message["content"])
 
@@ -132,10 +183,10 @@ if prompt:
     
     # Handle text message
     if getattr(prompt, "text", None):
-        st.chat_message("user").markdown(prompt.text)
+        st.chat_message("user", avatar=USER_AVATAR).markdown(prompt.text)
         st.session_state.messages.append({"role": "user", "content": prompt.text})
 
-        with st.chat_message("assistant", avatar="✨"):
+        with st.chat_message("assistant", avatar=ASSISTANT_AVATAR):
             chat_history = []
             for msg in st.session_state.messages[:-1]:
                 if msg["role"] == "user":
@@ -146,4 +197,4 @@ if prompt:
             response_stream = pipeline.answer_question_stream(prompt.text, chat_history)
             response = st.write_stream(response_stream)
                 
-        st.session_state.messages.append({"role": "assistant", "content": response, "avatar": "✨"})
+        st.session_state.messages.append({"role": "assistant", "content": response})
