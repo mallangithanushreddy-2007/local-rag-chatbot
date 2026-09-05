@@ -1,5 +1,6 @@
 import streamlit as st
 import os
+import speech_recognition as sr
 from rag_pipeline import LocalRAGPipeline
 
 st.set_page_config(page_title="Local RAG Chatbot", page_icon="✨")
@@ -91,6 +92,20 @@ html, body, [class*="css"] {
     box-shadow: 0 2px 6px rgba(0,0,0,0.05) !important;
 }
 
+/* Change Streamlit chat input send button from Up Arrow to Right Arrow */
+[data-testid="stChatInputSubmitButton"] svg {
+    display: none !important;
+}
+[data-testid="stChatInputSubmitButton"]::before {
+    content: "➔";
+    font-size: 24px;
+    font-weight: bold;
+    color: #4285f4;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
 /* Ensure New Conversation button text is readable */
 div.stButton > button[kind="primary"] {
     background-color: #ffffff !important;
@@ -156,10 +171,12 @@ for message in st.session_state.messages:
     with st.chat_message(message["role"], avatar=avatar):
         st.markdown(message["content"])
 
-# Chat input with inline file uploader
-prompt = st.chat_input("Ask a question about your documents...", accept_file=True, file_type=["pdf", "txt"])
+# Chat input with inline file uploader and audio recorder
+prompt = st.chat_input("Ask a question about your documents...", accept_file=True, accept_audio=True, file_type=["pdf", "txt"])
 
 if prompt:
+    text_input = None
+    
     # Handle files if they were attached
     if getattr(prompt, "files", None):
         with st.spinner("Processing attached documents..."):
@@ -174,11 +191,26 @@ if prompt:
                 st.toast("Documents processed successfully!", icon="✅")
             else:
                 st.toast("Failed to process documents.", icon="❌")
+                
+    # Handle audio input
+    if getattr(prompt, "audio", None):
+        with st.spinner("Transcribing audio..."):
+            try:
+                recognizer = sr.Recognizer()
+                with sr.AudioFile(prompt.audio) as source:
+                    audio_data = recognizer.record(source)
+                    text_input = recognizer.recognize_google(audio_data)
+                    st.toast("Transcription successful!")
+            except Exception as e:
+                st.error(f"Error transcribing audio: {e}")
     
     # Handle text message
     if getattr(prompt, "text", None):
-        st.chat_message("user", avatar=USER_AVATAR).markdown(prompt.text)
-        st.session_state.messages.append({"role": "user", "content": prompt.text})
+        text_input = prompt.text
+        
+    if text_input:
+        st.chat_message("user", avatar=USER_AVATAR).markdown(text_input)
+        st.session_state.messages.append({"role": "user", "content": text_input})
 
         with st.chat_message("assistant", avatar=ASSISTANT_AVATAR):
             chat_history = []
@@ -188,7 +220,7 @@ if prompt:
                 elif msg["role"] == "assistant":
                     chat_history.append(("assistant", msg["content"]))
                     
-            response_stream = pipeline.answer_question_stream(prompt.text, chat_history)
+            response_stream = pipeline.answer_question_stream(text_input, chat_history)
             response = st.write_stream(response_stream)
                 
         st.session_state.messages.append({"role": "assistant", "content": response})
