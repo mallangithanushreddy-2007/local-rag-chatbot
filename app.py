@@ -121,6 +121,16 @@ div.stButton > button[kind="primary"] * {
 }
 
 /* Make the volume button inline and seamless inside chat bubbles */
+[data-testid="stChatMessage"] [data-testid="element-container"]:has(div.stButton) {
+    display: flex !important;
+    justify-content: flex-start !important;
+    width: 100% !important;
+}
+[data-testid="stChatMessage"] div.stButton {
+    display: flex !important;
+    justify-content: flex-start !important;
+    width: 100% !important;
+}
 [data-testid="stChatMessage"] div.stButton > button {
     background: transparent !important;
     border: none !important;
