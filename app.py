@@ -9,8 +9,8 @@ def inject_custom_css():
 <style>
 /* Hide Streamlit header/footer */
 #MainMenu {visibility: hidden;}
-footer {visibility: hidden;}
 header {visibility: hidden;}
+.st-emotion-cache-12fmjuu {visibility: hidden;} /* Specific class for made with streamlit watermark if needed, or just let it be */
 
 /* Custom typography - Google Sans */
 @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&display=swap');
