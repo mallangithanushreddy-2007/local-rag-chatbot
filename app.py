@@ -12,7 +12,6 @@ def inject_custom_css():
 <style>
 /* Hide Streamlit header/footer */
 #MainMenu {visibility: hidden;}
-header {visibility: hidden;}
 .st-emotion-cache-12fmjuu {visibility: hidden;} /* Specific class for made with streamlit watermark if needed, or just let it be */
 
 /* Custom typography - Google Sans */
@@ -40,7 +39,7 @@ html, body, [class*="css"] {
 /* User Message Bubble (Right, Gray) */
 /* Targets the 1x1 PNG */
 [data-testid="stChatMessage"]:has(img[src*="image/png"]) {
-    justify-content: flex-end !important;
+    flex-direction: row-reverse !important;
 }
 [data-testid="stChatMessage"]:has(img[src*="image/png"]) [data-testid="stChatMessageContent"] {
     background-color: #f0f2f6 !important;
@@ -51,12 +50,13 @@ html, body, [class*="css"] {
     padding: 12px 16px !important;
     max-width: 80% !important;
     flex-grow: 0 !important;
+    margin-left: auto !important;
 }
 
 /* Assistant Message Bubble (Left, Solid Blue) */
 /* Targets the 1x1 GIF */
 [data-testid="stChatMessage"]:has(img[src*="image/gif"]) {
-    justify-content: flex-start !important;
+    flex-direction: row !important;
 }
 [data-testid="stChatMessage"]:has(img[src*="image/gif"]) [data-testid="stChatMessageContent"] {
     background-color: #4285f4 !important;
@@ -67,6 +67,7 @@ html, body, [class*="css"] {
     padding: 12px 16px !important;
     max-width: 80% !important;
     flex-grow: 0 !important;
+    margin-right: auto !important;
 }
 
 /* Ensure text inside assistant bubble stays readable */
