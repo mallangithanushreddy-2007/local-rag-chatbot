@@ -37,31 +37,33 @@ html, body, [class*="css"] {
     display: none !important;
 }
 
-/* User Message Bubble (Left, Gray) */
+/* User Message Bubble (Right, Gray) */
 /* Targets the 1x1 PNG */
 [data-testid="stChatMessage"]:has(img[src*="image/png"]) {
-    justify-content: flex-start !important;
+    flex-direction: row-reverse !important;
 }
 [data-testid="stChatMessage"]:has(img[src*="image/png"]) [data-testid="stChatMessageContent"] {
     background-color: #f0f2f6 !important;
     color: #1f1f1f !important;
     border-radius: 18px !important;
-    border-bottom-left-radius: 4px !important;
+    border-bottom-left-radius: 18px !important;
+    border-bottom-right-radius: 4px !important;
     padding: 12px 16px !important;
     max-width: 80% !important;
     flex-grow: 0 !important;
 }
 
-/* Assistant Message Bubble (Right, Solid Blue) */
+/* Assistant Message Bubble (Left, Solid Blue) */
 /* Targets the 1x1 GIF */
 [data-testid="stChatMessage"]:has(img[src*="image/gif"]) {
-    flex-direction: row-reverse !important;
+    justify-content: flex-start !important;
 }
 [data-testid="stChatMessage"]:has(img[src*="image/gif"]) [data-testid="stChatMessageContent"] {
     background-color: #4285f4 !important;
     color: #ffffff !important;
     border-radius: 18px !important;
-    border-bottom-right-radius: 4px !important;
+    border-bottom-right-radius: 18px !important;
+    border-bottom-left-radius: 4px !important;
     padding: 12px 16px !important;
     max-width: 80% !important;
     flex-grow: 0 !important;
@@ -161,7 +163,7 @@ div.stButton > button[kind="primary"] * {
 inject_custom_css()
 
 # Only show title if chat is empty to keep it clean
-if "messages" not in st.session_state or len(st.session_state.messages) <= 1:
+if "messages" not in st.session_state or len(st.session_state.messages) == 0:
     st.markdown('<h1 class="gemini-title">Hello, Thanush</h1>', unsafe_allow_html=True)
     st.markdown('<h2 style="color: #444746; font-size: 32px; font-weight: 500; margin-top: -15px;">How can I help you today?</h2>', unsafe_allow_html=True)
 
