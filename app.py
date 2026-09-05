@@ -40,7 +40,7 @@ html, body, [class*="css"] {
 /* User Message Bubble (Right, Gray) */
 /* Targets the 1x1 PNG */
 [data-testid="stChatMessage"]:has(img[src*="image/png"]) {
-    flex-direction: row-reverse !important;
+    justify-content: flex-end !important;
 }
 [data-testid="stChatMessage"]:has(img[src*="image/png"]) [data-testid="stChatMessageContent"] {
     background-color: #f0f2f6 !important;
