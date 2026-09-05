@@ -1,6 +1,8 @@
 import streamlit as st
 import os
+import io
 import speech_recognition as sr
+from gtts import gTTS
 from rag_pipeline import LocalRAGPipeline
 
 st.set_page_config(page_title="Local RAG Chatbot", page_icon="✨")
@@ -118,6 +120,22 @@ div.stButton > button[kind="primary"] * {
     font-weight: 500 !important;
 }
 
+/* Make the volume button inline and seamless inside chat bubbles */
+[data-testid="stChatMessage"] div.stButton > button {
+    background: transparent !important;
+    border: none !important;
+    padding: 0 !important;
+    margin-top: 8px !important;
+    width: auto !important;
+    height: auto !important;
+    box-shadow: none !important;
+    font-size: 20px !important;
+}
+[data-testid="stChatMessage"] div.stButton > button:hover {
+    background: transparent !important;
+    opacity: 0.8;
+}
+
 /* Gemini Gradient Title */
 .gemini-title {
     font-size: 48px;
@@ -140,6 +158,12 @@ if "messages" not in st.session_state or len(st.session_state.messages) <= 1:
 @st.cache_resource
 def get_pipeline(model_name):
     return LocalRAGPipeline(model_name=model_name)
+
+def get_tts_audio(text):
+    tts = gTTS(text=text, lang='en')
+    fp = io.BytesIO()
+    tts.write_to_fp(fp)
+    return fp.getvalue()
 
 with st.sidebar:
     if st.button("➕ New Conversation", use_container_width=True, type="primary"):
@@ -165,11 +189,18 @@ if "messages" not in st.session_state:
     pipeline.load_existing_vectorstore()
 
 # Display chat messages from history on app rerun
-for message in st.session_state.messages:
+for i, message in enumerate(st.session_state.messages):
     # Use the transparent image based on role
     avatar = USER_AVATAR if message["role"] == "user" else ASSISTANT_AVATAR
     with st.chat_message(message["role"], avatar=avatar):
         st.markdown(message["content"])
+        
+        # Add TTS Read Aloud button for AI responses
+        if message["role"] == "assistant":
+            if st.button("🔊", key=f"tts_{i}", help="Read Aloud"):
+                with st.spinner("Generating audio..."):
+                    audio_bytes = get_tts_audio(message["content"])
+                    st.audio(audio_bytes, format="audio/mp3", autoplay=True)
 
 # Chat input with inline file uploader and audio recorder
 prompt = st.chat_input("Ask a question about your documents...", accept_file=True, accept_audio=True, file_type=["pdf", "txt"])
@@ -224,3 +255,4 @@ if prompt:
             response = st.write_stream(response_stream)
                 
         st.session_state.messages.append({"role": "assistant", "content": response})
+        st.rerun()
