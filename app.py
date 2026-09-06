@@ -234,6 +234,11 @@ def delete_chat(chat_id):
     if os.path.exists(path):
         os.remove(path)
 
+@st.dialog("Share Conversation")
+def share_chat_dialog(chat_text):
+    st.markdown("Copy the text below to share your conversation:")
+    st.code(chat_text, language="text")
+
 with st.sidebar:
     if st.button("➕ New Conversation", use_container_width=True, type="primary"):
         st.session_state.messages = []
@@ -255,9 +260,10 @@ with st.sidebar:
                         st.rerun()
                 with col2:
                     with st.popover("⋮", use_container_width=True):
-                        # Download chat text
+                        # Share chat
                         chat_text = "\n\n".join([f"{msg['role'].capitalize()}: {msg['content']}" for msg in chat["messages"]])
-                        st.download_button("📥 Download", data=chat_text, file_name=f"{chat['title']}.txt", mime="text/plain", key=f"share_{chat['id']}", use_container_width=True)
+                        if st.button("🔗 Share", key=f"share_{chat['id']}", use_container_width=True):
+                            share_chat_dialog(chat_text)
                         
                         # Delete chat
                         if st.button("🗑️ Delete", key=f"del_{chat['id']}", use_container_width=True):
