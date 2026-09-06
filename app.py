@@ -1,6 +1,9 @@
 import streamlit as st
 import os
 import io
+import json
+import time
+import uuid
 import speech_recognition as sr
 from gtts import gTTS
 from rag_pipeline import LocalRAGPipeline
@@ -178,13 +181,54 @@ def get_tts_audio(text):
     tts.write_to_fp(fp)
     return fp.getvalue()
 
+CHAT_HISTORY_DIR = "chat_history"
+
+def get_chat_history():
+    os.makedirs(CHAT_HISTORY_DIR, exist_ok=True)
+    chats = []
+    for file in os.listdir(CHAT_HISTORY_DIR):
+        if file.endswith(".json"):
+            path = os.path.join(CHAT_HISTORY_DIR, file)
+            try:
+                with open(path, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                    chats.append(data)
+            except Exception:
+                pass
+    return sorted(chats, key=lambda x: x.get("updated_at", 0), reverse=True)
+
+def save_chat(chat_id, title, messages):
+    os.makedirs(CHAT_HISTORY_DIR, exist_ok=True)
+    path = os.path.join(CHAT_HISTORY_DIR, f"{chat_id}.json")
+    data = {
+        "id": chat_id,
+        "title": title,
+        "updated_at": time.time(),
+        "messages": messages
+    }
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(data, f, indent=4)
+
 with st.sidebar:
     if st.button("➕ New Conversation", use_container_width=True, type="primary"):
         st.session_state.messages = []
+        st.session_state.current_chat_id = str(uuid.uuid4())
+        st.session_state.current_chat_title = "New Conversation"
         st.rerun()
         
+    st.markdown("### Chat History")
+    history_container = st.container(height=350, border=False)
+    with history_container:
+        past_chats = get_chat_history()
+        for chat in past_chats:
+            if st.button(chat["title"], key=f"chat_{chat['id']}", use_container_width=True):
+                st.session_state.messages = chat["messages"]
+                st.session_state.current_chat_id = chat["id"]
+                st.session_state.current_chat_title = chat["title"]
+                st.rerun()
+        
     # Spacer to push the model selector to the bottom left corner
-    st.markdown('<div style="height: 70vh;"></div>', unsafe_allow_html=True)
+    st.markdown('<div style="height: 10vh;"></div>', unsafe_allow_html=True)
     
     selected_model = st.selectbox("AI Model", ["llama3", "phi3", "mistral", "gemma2"], index=0)
     pipeline = get_pipeline(selected_model)
@@ -196,6 +240,10 @@ USER_AVATAR = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAw
 ASSISTANT_AVATAR = "data:image/gif;base64,R0lGODlhAQABAIAAAP///wAAACH5BAEAAAAALAAAAAABAAEAAAICRAEAOw=="
 
 # Initialize chat history
+if "current_chat_id" not in st.session_state:
+    st.session_state.current_chat_id = str(uuid.uuid4())
+if "current_chat_title" not in st.session_state:
+    st.session_state.current_chat_title = "New Conversation"
 if "messages" not in st.session_state:
     st.session_state.messages = []
     # Just load the DB silently in the background
@@ -253,8 +301,12 @@ if prompt:
         text_input = prompt.text
         
     if text_input:
+        if len(st.session_state.messages) == 0:
+            st.session_state.current_chat_title = text_input[:30] + ("..." if len(text_input) > 30 else "")
+            
         st.chat_message("user", avatar=USER_AVATAR).markdown(text_input)
         st.session_state.messages.append({"role": "user", "content": text_input})
+        save_chat(st.session_state.current_chat_id, st.session_state.current_chat_title, st.session_state.messages)
 
         with st.chat_message("assistant", avatar=ASSISTANT_AVATAR):
             chat_history = []
@@ -268,4 +320,5 @@ if prompt:
             response = st.write_stream(response_stream)
                 
         st.session_state.messages.append({"role": "assistant", "content": response})
+        save_chat(st.session_state.current_chat_id, st.session_state.current_chat_title, st.session_state.messages)
         st.rerun()
