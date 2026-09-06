@@ -1,0 +1,19 @@
+{
+    "id": "f85923dc-bda4-4fad-8a53-b65d3ba2bd50",
+    "title": "hi ",
+    "updated_at": 1788680824.7774816,
+    "messages": [
+        {
+            "role": "user",
+            "content": "hi "
+        },
+        {
+            "role": "assistant",
+            "content": "Hello! It seems you're looking for information about sustainability. According to the context provided, Thanush Reddy Mallangi completed the \"Sustainability Foundations: Core Concepts\" course on April 4, 2026, and the top skills covered were Environmental Sustainability."
+        },
+        {
+            "role": "user",
+            "content": "what is spotify "
+        }
+    ]
+}

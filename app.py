@@ -221,7 +221,7 @@ with st.sidebar:
     with history_container:
         past_chats = get_chat_history()
         for chat in past_chats:
-            if st.button(chat["title"], key=f"chat_{chat['id']}", use_container_width=True):
+            if st.button(chat["title"], key=f"chat_{chat['id']}", use_container_width=True, type="primary"):
                 st.session_state.messages = chat["messages"]
                 st.session_state.current_chat_id = chat["id"]
                 st.session_state.current_chat_title = chat["title"]
