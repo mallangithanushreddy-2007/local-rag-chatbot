@@ -126,6 +126,26 @@ div.stButton > button[kind="primary"] * {
     font-weight: 500 !important;
 }
 
+/* Style the 3-dots popover button */
+[data-testid="stPopover"] > button {
+    background: transparent !important;
+    border: none !important;
+    color: #1f1f1f !important;
+    padding: 0 !important;
+    font-size: 18px !important;
+    box-shadow: none !important;
+    min-width: auto !important;
+    width: 32px !important;
+    height: 32px !important;
+    border-radius: 50% !important;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+[data-testid="stPopover"] > button:hover {
+    background: #e0e0e0 !important;
+}
+
 /* Make the volume button inline and seamless inside chat bubbles */
 [data-testid="stChatMessage"] [data-testid="element-container"]:has(div.stButton) {
     display: flex !important;
@@ -209,6 +229,11 @@ def save_chat(chat_id, title, messages):
     with open(path, "w", encoding="utf-8") as f:
         json.dump(data, f, indent=4)
 
+def delete_chat(chat_id):
+    path = os.path.join(CHAT_HISTORY_DIR, f"{chat_id}.json")
+    if os.path.exists(path):
+        os.remove(path)
+
 with st.sidebar:
     if st.button("➕ New Conversation", use_container_width=True, type="primary"):
         st.session_state.messages = []
@@ -216,16 +241,32 @@ with st.sidebar:
         st.session_state.current_chat_title = "New Conversation"
         st.rerun()
         
-    st.markdown("### Chat History")
-    history_container = st.container(height=350, border=False)
-    with history_container:
-        past_chats = get_chat_history()
-        for chat in past_chats:
-            if st.button(chat["title"], key=f"chat_{chat['id']}", use_container_width=True, type="primary"):
-                st.session_state.messages = chat["messages"]
-                st.session_state.current_chat_id = chat["id"]
-                st.session_state.current_chat_title = chat["title"]
-                st.rerun()
+    with st.expander("💬 Chat History", expanded=True):
+        history_container = st.container(height=350, border=False)
+        with history_container:
+            past_chats = get_chat_history()
+            for chat in past_chats:
+                col1, col2 = st.columns([0.85, 0.15], gap="small")
+                with col1:
+                    if st.button(chat["title"], key=f"chat_{chat['id']}", use_container_width=True, type="primary"):
+                        st.session_state.messages = chat["messages"]
+                        st.session_state.current_chat_id = chat["id"]
+                        st.session_state.current_chat_title = chat["title"]
+                        st.rerun()
+                with col2:
+                    with st.popover("⋮", use_container_width=True):
+                        # Download chat text
+                        chat_text = "\n\n".join([f"{msg['role'].capitalize()}: {msg['content']}" for msg in chat["messages"]])
+                        st.download_button("📥 Download", data=chat_text, file_name=f"{chat['title']}.txt", mime="text/plain", key=f"share_{chat['id']}", use_container_width=True)
+                        
+                        # Delete chat
+                        if st.button("🗑️ Delete", key=f"del_{chat['id']}", use_container_width=True):
+                            delete_chat(chat["id"])
+                            if st.session_state.current_chat_id == chat["id"]:
+                                st.session_state.messages = []
+                                st.session_state.current_chat_id = str(uuid.uuid4())
+                                st.session_state.current_chat_title = "New Conversation"
+                            st.rerun()
         
     # Spacer to push the model selector to the bottom left corner
     st.markdown('<div style="height: 10vh;"></div>', unsafe_allow_html=True)
