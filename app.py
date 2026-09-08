@@ -296,6 +296,31 @@ with st.sidebar:
         
     st.markdown("---")
     
+    st.markdown("""
+    <style>
+    .colorful-voice {
+        background: linear-gradient(45deg, #ff007f, #7f00ff, #00ffff);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        font-weight: bold;
+        font-size: 16px;
+    }
+    </style>
+    <div style="text-align:center; margin-bottom: 5px;">
+        <span class="colorful-voice">✨ Voice Agent</span>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    from streamlit_mic_recorder import mic_recorder
+    sidebar_audio = mic_recorder(
+        start_prompt="🎙️ Tap to Speak",
+        stop_prompt="⏹️ Tap to Stop",
+        key="sidebar_voice_agent",
+        format="wav"
+    )
+    
+    st.markdown("<br>", unsafe_allow_html=True)
+    
     if st.button("➕ New Conversation", use_container_width=True, type="primary"):
         st.session_state.messages = []
         st.session_state.current_chat_id = str(uuid.uuid4())
@@ -352,175 +377,103 @@ if "messages" not in st.session_state:
     # Just load the DB silently in the background
     pipeline.load_existing_vectorstore()
 
-# GPT Voice Agent Mode Anchor
-st.markdown('<div id="gpt-voice-anchor"></div>', unsafe_allow_html=True)
-if st.button("🎙️ Advanced Voice Mode", use_container_width=True):
-    st.session_state.gpt_voice_mode = not st.session_state.get("gpt_voice_mode", False)
-    st.rerun()
+# Display chat messages from history on app rerun
+for i, message in enumerate(st.session_state.messages):
+    # Use the transparent image based on role
+    avatar = USER_AVATAR if message["role"] == "user" else ASSISTANT_AVATAR
+    with st.chat_message(message["role"], avatar=avatar):
+        st.markdown(message["content"])
+        
+        # Add TTS Read Aloud button for AI responses
+        if message["role"] == "assistant":
+            if st.button("🔊", key=f"tts_{i}", help="Read Aloud"):
+                with st.spinner("Generating audio..."):
+                    audio_bytes = get_tts_audio(message["content"])
+                    st.audio(audio_bytes, format="audio/mp3", autoplay=True)
 
-if st.session_state.get("gpt_voice_mode", False):
-    # Full-screen cinematic dark mode and orb animation
-    st.markdown("""
-        <style>
-        [data-testid="stMainBlockContainer"] {
-            background-color: #000000 !important;
-            height: 100vh !important;
-            max-width: 100% !important;
-            border-radius: 20px;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-        }
-        header { display: none !important; }
+# Chat input with inline file uploader and audio recorder
+prompt = st.chat_input("Ask a question about your documents...", accept_file=True, accept_audio=True, file_type=["pdf", "txt"])
+
+if prompt or sidebar_audio:
+    text_input = None
+    
+    # Handle files if they were attached
+    if prompt and getattr(prompt, "files", None):
+        with st.spinner("Processing attached documents..."):
+            os.makedirs("data", exist_ok=True)
+            for file in prompt.files:
+                file_path = os.path.join("data", file.name)
+                with open(file_path, "wb") as f:
+                    f.write(file.getbuffer())
+            
+            success = pipeline.load_and_process_documents()
+            if success:
+                st.toast("Documents processed successfully!", icon="✅")
+            else:
+                st.toast("Failed to process documents.", icon="❌")
+                
+    # Handle audio input from chat or sidebar
+    audio_source = getattr(prompt, "audio", None) if prompt else None
+    if sidebar_audio:
+        audio_source = io.BytesIO(sidebar_audio['bytes'])
         
-        .gpt-orb {
-            width: 180px;
-            height: 180px;
-            border-radius: 50%;
-            background: radial-gradient(circle, #ffffff 0%, #a8b1ff 40%, #1e3a8a 100%);
-            box-shadow: 0 0 40px #4f46e5, 0 0 80px #3730a3, inset 0 0 40px #ffffff;
-            animation: breathe 3s infinite ease-in-out;
-            margin: 40px auto;
-        }
-        @keyframes breathe {
-            0% { transform: scale(0.95); box-shadow: 0 0 40px #4f46e5, 0 0 80px #3730a3; }
-            50% { transform: scale(1.05); box-shadow: 0 0 80px #6366f1, 0 0 120px #4338ca; }
-            100% { transform: scale(0.95); box-shadow: 0 0 40px #4f46e5, 0 0 80px #3730a3; }
-        }
-        .voice-title {
-            color: #ffffff;
-            text-align: center;
-            font-size: 28px;
-            font-weight: 600;
-            margin-bottom: 10px;
-        }
-        .voice-subtitle {
-            color: #9ca3af;
-            text-align: center;
-            font-size: 16px;
-            margin-bottom: 40px;
-        }
-        
-        /* Attempt to style the mic recorder container */
-        div[data-testid="stVerticalBlock"] > div > div > div > iframe {
-            margin: 0 auto;
-            display: block;
-        }
-        </style>
-    """, unsafe_allow_html=True)
-    
-    st.markdown('<div class="voice-title">Advanced Voice Mode</div>', unsafe_allow_html=True)
-    st.markdown('<div class="voice-subtitle">Tap the mic below and start speaking...</div>', unsafe_allow_html=True)
-    st.markdown('<div class="gpt-orb"></div>', unsafe_allow_html=True)
-    
-    st.markdown("<br>", unsafe_allow_html=True)
-    
-    from streamlit_mic_recorder import mic_recorder
-    audio_val = mic_recorder(
-        start_prompt="TAP TO SPEAK 🎙️",
-        stop_prompt="TAP TO STOP ⏹️",
-        key="gpt_voice_recorder",
-        format="wav"
-    )
-    
-    if audio_val:
-        with st.spinner("Processing voice..."):
+    if audio_source:
+        with st.spinner("Transcribing audio..."):
             try:
                 recognizer = sr.Recognizer()
-                with sr.AudioFile(io.BytesIO(audio_val['bytes'])) as source:
+                with sr.AudioFile(audio_source) as source:
                     audio_data = recognizer.record(source)
                     text_input = recognizer.recognize_google(audio_data)
-                
-                pipeline = get_pipeline(st.session_state.get("selected_model", "llama3"))
-                response_stream = pipeline.answer_question_stream(text_input, [])
-                full_response = "".join([chunk for chunk in response_stream])
-                
-                audio_bytes = get_tts_audio(full_response)
-                
-                # Invisible base64 audio player for robust autoplay
-                import base64
-                audio_b64 = base64.b64encode(audio_bytes).decode()
-                audio_html = f'''
-                    <div style="text-align:center; color:#60a5fa; margin-bottom:10px; font-weight: bold;">🤖 Audio generated (Click play if it doesn't autoplay)</div>
-                    <audio autoplay="true" controls style="display: block; margin: 0 auto;">
-                        <source src="data:audio/mp3;base64,{audio_b64}" type="audio/mp3">
-                    </audio>
-                '''
-                st.markdown(audio_html, unsafe_allow_html=True)
+                    st.toast("Transcription successful!")
             except Exception as e:
-                st.error(f"Error processing audio: {e}")
-                
-else:
-    # Display chat messages from history on app rerun
-    for i, message in enumerate(st.session_state.messages):
-        # Use the transparent image based on role
-        avatar = USER_AVATAR if message["role"] == "user" else ASSISTANT_AVATAR
-        with st.chat_message(message["role"], avatar=avatar):
-            st.markdown(message["content"])
-            
-            # Add TTS Read Aloud button for AI responses
-            if message["role"] == "assistant":
-                if st.button("🔊", key=f"tts_{i}", help="Read Aloud"):
-                    with st.spinner("Generating audio..."):
-                        audio_bytes = get_tts_audio(message["content"])
-                        st.audio(audio_bytes, format="audio/mp3", autoplay=True)
-
-    # Chat input with inline file uploader and audio recorder
-    prompt = st.chat_input("Ask a question about your documents...", accept_file=True, accept_audio=True, file_type=["pdf", "txt"])
-
-    if prompt:
-        text_input = None
-        
-        # Handle files if they were attached
-        if getattr(prompt, "files", None):
-            with st.spinner("Processing attached documents..."):
-                os.makedirs("data", exist_ok=True)
-                for file in prompt.files:
-                    file_path = os.path.join("data", file.name)
-                    with open(file_path, "wb") as f:
-                        f.write(file.getbuffer())
-                
-                success = pipeline.load_and_process_documents()
-                if success:
-                    st.toast("Documents processed successfully!", icon="✅")
-                else:
-                    st.toast("Failed to process documents.", icon="❌")
-                    
-        # Handle audio input
-        if getattr(prompt, "audio", None):
-            with st.spinner("Transcribing audio..."):
-                try:
-                    recognizer = sr.Recognizer()
-                    with sr.AudioFile(prompt.audio) as source:
-                        audio_data = recognizer.record(source)
-                        text_input = recognizer.recognize_google(audio_data)
-                        st.toast("Transcription successful!")
-                except Exception as e:
-                    st.error(f"Error transcribing audio: {e}")
-        
-        # Handle text message
-        if getattr(prompt, "text", None):
-            text_input = prompt.text
-            
-        if text_input:
-            if len(st.session_state.messages) == 0:
-                st.session_state.current_chat_title = text_input[:30] + ("..." if len(text_input) > 30 else "")
-                
-            st.chat_message("user", avatar=USER_AVATAR).markdown(text_input)
-            st.session_state.messages.append({"role": "user", "content": text_input})
-            save_chat(st.session_state.current_chat_id, st.session_state.current_chat_title, st.session_state.messages)
+                st.error(f"Error transcribing audio: {e}")
     
-            with st.chat_message("assistant", avatar=ASSISTANT_AVATAR):
-                chat_history = []
-                for msg in st.session_state.messages[:-1]:
-                    if msg["role"] == "user":
-                        chat_history.append(("human", msg["content"]))
-                    elif msg["role"] == "assistant":
-                        chat_history.append(("assistant", msg["content"]))
-                        
-                response_stream = pipeline.answer_question_stream(text_input, chat_history)
-                response = st.write_stream(response_stream)
+    # Handle text message
+    if prompt and getattr(prompt, "text", None):
+        text_input = prompt.text
+        
+    if text_input:
+        if len(st.session_state.messages) == 0:
+            st.session_state.current_chat_title = text_input[:30] + ("..." if len(text_input) > 30 else "")
+            
+        st.chat_message("user", avatar=USER_AVATAR).markdown(text_input)
+        st.session_state.messages.append({"role": "user", "content": text_input})
+        save_chat(st.session_state.current_chat_id, st.session_state.current_chat_title, st.session_state.messages)
+
+        with st.chat_message("assistant", avatar=ASSISTANT_AVATAR):
+            chat_history = []
+            for msg in st.session_state.messages[:-1]:
+                if msg["role"] == "user":
+                    chat_history.append(("human", msg["content"]))
+                elif msg["role"] == "assistant":
+                    chat_history.append(("assistant", msg["content"]))
                     
+            response_stream = pipeline.answer_question_stream(text_input, chat_history)
+            response = st.write_stream(response_stream)
             st.session_state.messages.append({"role": "assistant", "content": response})
             save_chat(st.session_state.current_chat_id, st.session_state.current_chat_title, st.session_state.messages)
+            
+            # If the user spoke to the voice agent, auto-play the response
+            if sidebar_audio:
+                st.session_state.autoplay_response = response
+                
             st.rerun()
+
+# Handle Auto-Play from Voice Agent
+if st.session_state.get("autoplay_response"):
+    with st.spinner("Generating audio..."):
+        try:
+            audio_bytes = get_tts_audio(st.session_state.autoplay_response)
+            import base64
+            audio_b64 = base64.b64encode(audio_bytes).decode()
+            audio_html = f'''
+                <div style="text-align:center; color:#60a5fa; margin-top:10px; font-weight: bold;">🤖 Audio generated (Click play if it doesn't autoplay)</div>
+                <audio autoplay="true" controls style="display: block; margin: 0 auto;">
+                    <source src="data:audio/mp3;base64,{audio_b64}" type="audio/mp3">
+                </audio>
+            '''
+            st.markdown(audio_html, unsafe_allow_html=True)
+        except Exception as e:
+            st.error(f"TTS Error: {e}")
+    # Clear it so it doesn't loop on refresh
+    st.session_state.autoplay_response = None
