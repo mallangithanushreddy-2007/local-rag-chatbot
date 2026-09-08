@@ -257,6 +257,34 @@ def share_chat_dialog(chat_text):
     st.markdown("Copy the text below to share your conversation:")
     st.code(chat_text, language="text")
 
+@st.dialog("🎙️ Voice Assistant")
+def voice_assistant_dialog():
+    if "voice_assistant_response" in st.session_state:
+        st.audio(st.session_state.voice_assistant_response, format="audio/mp3", autoplay=True)
+        if st.button("Ask another question", type="primary", use_container_width=True):
+            del st.session_state.voice_assistant_response
+            st.rerun()
+    else:
+        audio_val = st.audio_input("Tap to speak your query")
+        if audio_val:
+            with st.spinner("Listening & Thinking..."):
+                try:
+                    recognizer = sr.Recognizer()
+                    with sr.AudioFile(audio_val) as source:
+                        audio_data = recognizer.record(source)
+                        text_input = recognizer.recognize_google(audio_data)
+                    
+                    st.toast(f"Heard: {text_input}")
+                    pipeline = get_pipeline("llama3")
+                    response_stream = pipeline.answer_question_stream(text_input, [])
+                    full_response = "".join([chunk for chunk in response_stream])
+                    
+                    audio_bytes = get_tts_audio(full_response)
+                    st.session_state.voice_assistant_response = audio_bytes
+                    st.rerun()
+                except Exception as e:
+                    st.error(f"Could not understand audio: {e}")
+
 with st.sidebar:
     if st.button("➕ New Conversation", use_container_width=True, type="primary"):
         st.session_state.messages = []
@@ -331,13 +359,7 @@ for i, message in enumerate(st.session_state.messages):
 # Voice Assistant Anchor
 st.markdown('<div id="voice-assistant-anchor"></div>', unsafe_allow_html=True)
 if st.button("🎙️ Voice Assistant"):
-    if st.session_state.get("voice_assistant_mode", False):
-        st.session_state.voice_assistant_mode = False
-        st.toast("Voice Assistant disabled.")
-    else:
-        st.session_state.voice_assistant_mode = True
-        st.toast("Voice Assistant enabled!")
-    st.rerun()
+    voice_assistant_dialog()
 
 # Chat input with inline file uploader and audio recorder
 prompt = st.chat_input("Ask a question about your documents...", accept_file=True, accept_audio=True, file_type=["pdf", "txt"])
