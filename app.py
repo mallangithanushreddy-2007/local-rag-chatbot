@@ -146,6 +146,24 @@ div.stButton > button[kind="primary"] * {
     background: #e0e0e0 !important;
 }
 
+/* Voice Assistant Floating Button */
+div[data-testid="element-container"]:has(#voice-assistant-anchor) + div[data-testid="element-container"] {
+    position: sticky !important;
+    bottom: 90px !important;
+    width: fit-content !important;
+    z-index: 99 !important;
+    margin-bottom: -40px !important; /* Pull it down slightly towards the input */
+}
+div[data-testid="element-container"]:has(#voice-assistant-anchor) + div[data-testid="element-container"] button {
+    background-color: #ffffff !important;
+    border: 1px solid #d2d2d2 !important;
+    border-radius: 20px !important;
+    color: #4285f4 !important;
+    font-weight: 500 !important;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1) !important;
+    padding: 4px 16px !important;
+}
+
 /* Make the volume button inline and seamless inside chat bubbles */
 [data-testid="stChatMessage"] [data-testid="element-container"]:has(div.stButton) {
     display: flex !important;
@@ -309,6 +327,17 @@ for i, message in enumerate(st.session_state.messages):
                 with st.spinner("Generating audio..."):
                     audio_bytes = get_tts_audio(message["content"])
                     st.audio(audio_bytes, format="audio/mp3", autoplay=True)
+
+# Voice Assistant Anchor
+st.markdown('<div id="voice-assistant-anchor"></div>', unsafe_allow_html=True)
+if st.button("🎙️ Voice Assistant"):
+    if st.session_state.get("voice_assistant_mode", False):
+        st.session_state.voice_assistant_mode = False
+        st.toast("Voice Assistant disabled.")
+    else:
+        st.session_state.voice_assistant_mode = True
+        st.toast("Voice Assistant enabled!")
+    st.rerun()
 
 # Chat input with inline file uploader and audio recorder
 prompt = st.chat_input("Ask a question about your documents...", accept_file=True, accept_audio=True, file_type=["pdf", "txt"])
