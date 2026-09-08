@@ -150,13 +150,16 @@ div.stButton > button[kind="primary"] * {
 div[data-testid="element-container"]:has(#voice-assistant-anchor) + div[data-testid="element-container"] {
     position: sticky !important;
     bottom: 90px !important;
-    width: 100% !important;
     z-index: 99 !important;
     margin-bottom: -40px !important; /* Pull it down slightly towards the input */
+    pointer-events: none !important; /* Prevent the full-width container from blocking clicks behind it */
+}
+div[data-testid="element-container"]:has(#voice-assistant-anchor) + div[data-testid="element-container"] div.stButton {
     display: flex !important;
     justify-content: flex-end !important; /* Force to the right edge */
+    width: 100% !important;
     padding-right: 15px !important;
-    pointer-events: none !important; /* Prevent the full-width container from blocking clicks behind it */
+    pointer-events: none !important;
 }
 div[data-testid="element-container"]:has(#voice-assistant-anchor) + div[data-testid="element-container"] button {
     background-color: #000000 !important;
