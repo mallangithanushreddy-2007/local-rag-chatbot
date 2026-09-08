@@ -271,91 +271,7 @@ def share_chat_dialog(chat_text):
     st.markdown("Copy the text below to share your conversation:")
     st.code(chat_text, language="text")
 
-@st.dialog(" ")
-def voice_assistant_dialog():
-    st.markdown("""
-        <style>
-        /* Dialog Customizations */
-        [data-testid="stDialog"] {
-            background: linear-gradient(135deg, #0f172a, #1e1b4b) !important;
-            border-radius: 30px !important;
-            border: 1px solid rgba(255,255,255,0.1) !important;
-            box-shadow: 0 20px 50px rgba(0,0,0,0.7) !important;
-        }
-        [data-testid="stDialog"] header {
-            background: transparent !important;
-        }
-        [data-testid="stDialog"] h2 {
-            display: none !important; /* Hide default title */
-        }
-        [data-testid="stDialog"] button[aria-label="Close"] {
-            color: white !important; /* Keep the X button visible but white */
-        }
-        [data-testid="stDialog"] * {
-            color: white !important;
-        }
-        
-        .voice-orb {
-            width: 150px;
-            height: 150px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, #3b82f6, #8b5cf6);
-            margin: 10px auto 30px auto;
-            box-shadow: 0 0 30px rgba(59, 130, 246, 0.6), inset 0 0 20px rgba(255,255,255,0.5);
-            animation: pulse 2s infinite ease-in-out;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 60px;
-        }
-        
-        @keyframes pulse {
-            0% { transform: scale(0.95); box-shadow: 0 0 20px rgba(59, 130, 246, 0.5); }
-            50% { transform: scale(1.05); box-shadow: 0 0 50px rgba(139, 92, 246, 0.8); }
-            100% { transform: scale(0.95); box-shadow: 0 0 20px rgba(59, 130, 246, 0.5); }
-        }
-        
-        .voice-title {
-            text-align: center;
-            color: white;
-            font-size: 28px;
-            font-weight: 600;
-            margin-bottom: 5px;
-            font-family: 'Google Sans', sans-serif;
-        }
-        .voice-subtitle {
-            text-align: center;
-            color: #94a3b8;
-            font-size: 16px;
-            margin-bottom: 30px;
-        }
-        </style>
-        
-        <div class="voice-title">AI Voice Assistant</div>
-        <div class="voice-subtitle">Hands-free conversation mode</div>
-        <div class="voice-orb">🎙️</div>
-    """, unsafe_allow_html=True)
-    
-    audio_val = st.audio_input("Tap microphone to speak", key="voice_assistant_mic")
-    if audio_val:
-        with st.spinner("Listening & Thinking..."):
-            try:
-                recognizer = sr.Recognizer()
-                with sr.AudioFile(audio_val) as source:
-                    audio_data = recognizer.record(source)
-                    text_input = recognizer.recognize_google(audio_data)
-                
-                st.toast(f"Heard: {text_input}", icon="✅")
-                pipeline = get_pipeline(st.session_state.get("selected_model", "llama3"))
-                response_stream = pipeline.answer_question_stream(text_input, [])
-                full_response = "".join([chunk for chunk in response_stream])
-                
-                audio_bytes = get_tts_audio(full_response)
-                
-                st.markdown("<div style='text-align:center; color:#60a5fa; margin-bottom:10px; font-weight: bold;'>🤖 AI is speaking...</div>", unsafe_allow_html=True)
-                st.audio(audio_bytes, format="audio/mp3", autoplay=True)
-            except Exception as e:
-                st.error(f"Could not understand audio: {e}")
+
 
 with st.sidebar:
     if st.button("➕ New Conversation", use_container_width=True, type="primary"):
@@ -414,81 +330,138 @@ if "messages" not in st.session_state:
     # Just load the DB silently in the background
     pipeline.load_existing_vectorstore()
 
-# Display chat messages from history on app rerun
-for i, message in enumerate(st.session_state.messages):
-    # Use the transparent image based on role
-    avatar = USER_AVATAR if message["role"] == "user" else ASSISTANT_AVATAR
-    with st.chat_message(message["role"], avatar=avatar):
-        st.markdown(message["content"])
-        
-        # Add TTS Read Aloud button for AI responses
-        if message["role"] == "assistant":
-            if st.button("🔊", key=f"tts_{i}", help="Read Aloud"):
-                with st.spinner("Generating audio..."):
-                    audio_bytes = get_tts_audio(message["content"])
-                    st.audio(audio_bytes, format="audio/mp3", autoplay=True)
-
 # Voice Assistant Anchor
 st.markdown('<div id="voice-assistant-anchor"></div>', unsafe_allow_html=True)
 if st.button("🎙️ Voice Assistance"):
-    voice_assistant_dialog()
+    st.session_state.voice_assistant_mode = not st.session_state.get("voice_assistant_mode", False)
+    st.rerun()
 
-# Chat input with inline file uploader and audio recorder
-prompt = st.chat_input("Ask a question about your documents...", accept_file=True, accept_audio=True, file_type=["pdf", "txt"])
-
-if prompt:
-    text_input = None
+if st.session_state.get("voice_assistant_mode", False):
+    st.markdown("""
+        <style>
+        [data-testid="stMainBlockContainer"] {
+            background-color: black !important;
+            height: 100vh !important;
+            max-width: 100% !important;
+            border-radius: 20px;
+        }
+        /* Hide default top header */
+        header { display: none !important; }
+        
+        .va-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 70vh;
+        }
+        .va-text {
+            color: white;
+            font-family: sans-serif;
+            font-size: 24px;
+            letter-spacing: 2px;
+            margin-top: 30px;
+            font-weight: bold;
+        }
+        </style>
+    """, unsafe_allow_html=True)
     
-    # Handle files if they were attached
-    if getattr(prompt, "files", None):
-        with st.spinner("Processing attached documents..."):
-            os.makedirs("data", exist_ok=True)
-            for file in prompt.files:
-                file_path = os.path.join("data", file.name)
-                with open(file_path, "wb") as f:
-                    f.write(file.getbuffer())
-            
-            success = pipeline.load_and_process_documents()
-            if success:
-                st.toast("Documents processed successfully!", icon="✅")
-            else:
-                st.toast("Failed to process documents.", icon="❌")
-                
-    # Handle audio input
-    if getattr(prompt, "audio", None):
-        with st.spinner("Transcribing audio..."):
+    st.markdown('<div class="va-container">', unsafe_allow_html=True)
+    
+    audio_val = st.audio_input("TAP TO SPEAK WITH A MIC SYMBOL")
+    if audio_val:
+        with st.spinner("Listening & Thinking..."):
             try:
                 recognizer = sr.Recognizer()
-                with sr.AudioFile(prompt.audio) as source:
+                with sr.AudioFile(audio_val) as source:
                     audio_data = recognizer.record(source)
                     text_input = recognizer.recognize_google(audio_data)
-                    st.toast("Transcription successful!")
-            except Exception as e:
-                st.error(f"Error transcribing audio: {e}")
-    
-    # Handle text message
-    if getattr(prompt, "text", None):
-        text_input = prompt.text
-        
-    if text_input:
-        if len(st.session_state.messages) == 0:
-            st.session_state.current_chat_title = text_input[:30] + ("..." if len(text_input) > 30 else "")
-            
-        st.chat_message("user", avatar=USER_AVATAR).markdown(text_input)
-        st.session_state.messages.append({"role": "user", "content": text_input})
-        save_chat(st.session_state.current_chat_id, st.session_state.current_chat_title, st.session_state.messages)
-
-        with st.chat_message("assistant", avatar=ASSISTANT_AVATAR):
-            chat_history = []
-            for msg in st.session_state.messages[:-1]:
-                if msg["role"] == "user":
-                    chat_history.append(("human", msg["content"]))
-                elif msg["role"] == "assistant":
-                    chat_history.append(("assistant", msg["content"]))
-                    
-            response_stream = pipeline.answer_question_stream(text_input, chat_history)
-            response = st.write_stream(response_stream)
                 
-        st.session_state.messages.append({"role": "assistant", "content": response})
-        save_chat(st.session_state.current_chat_id, st.session_state.current_chat_title, st.session_state.messages)
-        st.rerun()
+                st.toast(f"Heard: {text_input}", icon="✅")
+                pipeline = get_pipeline(st.session_state.get("selected_model", "llama3"))
+                response_stream = pipeline.answer_question_stream(text_input, [])
+                full_response = "".join([chunk for chunk in response_stream])
+                
+                audio_bytes = get_tts_audio(full_response)
+                
+                st.markdown("<div style='text-align:center; color:#60a5fa; margin-bottom:10px; font-weight: bold;'>🤖 AI is speaking...</div>", unsafe_allow_html=True)
+                st.audio(audio_bytes, format="audio/mp3", autoplay=True)
+            except Exception as e:
+                st.error(f"Could not understand audio: {e}")
+                
+    st.markdown('</div>', unsafe_allow_html=True)
+else:
+    # Display chat messages from history on app rerun
+    for i, message in enumerate(st.session_state.messages):
+        # Use the transparent image based on role
+        avatar = USER_AVATAR if message["role"] == "user" else ASSISTANT_AVATAR
+        with st.chat_message(message["role"], avatar=avatar):
+            st.markdown(message["content"])
+            
+            # Add TTS Read Aloud button for AI responses
+            if message["role"] == "assistant":
+                if st.button("🔊", key=f"tts_{i}", help="Read Aloud"):
+                    with st.spinner("Generating audio..."):
+                        audio_bytes = get_tts_audio(message["content"])
+                        st.audio(audio_bytes, format="audio/mp3", autoplay=True)
+
+    # Chat input with inline file uploader and audio recorder
+    prompt = st.chat_input("Ask a question about your documents...", accept_file=True, accept_audio=True, file_type=["pdf", "txt"])
+
+
+    if prompt:
+        text_input = None
+        
+        # Handle files if they were attached
+        if getattr(prompt, "files", None):
+            with st.spinner("Processing attached documents..."):
+                os.makedirs("data", exist_ok=True)
+                for file in prompt.files:
+                    file_path = os.path.join("data", file.name)
+                    with open(file_path, "wb") as f:
+                        f.write(file.getbuffer())
+                
+                success = pipeline.load_and_process_documents()
+                if success:
+                    st.toast("Documents processed successfully!", icon="✅")
+                else:
+                    st.toast("Failed to process documents.", icon="❌")
+                    
+        # Handle audio input
+        if getattr(prompt, "audio", None):
+            with st.spinner("Transcribing audio..."):
+                try:
+                    recognizer = sr.Recognizer()
+                    with sr.AudioFile(prompt.audio) as source:
+                        audio_data = recognizer.record(source)
+                        text_input = recognizer.recognize_google(audio_data)
+                        st.toast("Transcription successful!")
+                except Exception as e:
+                    st.error(f"Error transcribing audio: {e}")
+        
+        # Handle text message
+        if getattr(prompt, "text", None):
+            text_input = prompt.text
+            
+        if text_input:
+            if len(st.session_state.messages) == 0:
+                st.session_state.current_chat_title = text_input[:30] + ("..." if len(text_input) > 30 else "")
+                
+            st.chat_message("user", avatar=USER_AVATAR).markdown(text_input)
+            st.session_state.messages.append({"role": "user", "content": text_input})
+            save_chat(st.session_state.current_chat_id, st.session_state.current_chat_title, st.session_state.messages)
+    
+            with st.chat_message("assistant", avatar=ASSISTANT_AVATAR):
+                chat_history = []
+                for msg in st.session_state.messages[:-1]:
+                    if msg["role"] == "user":
+                        chat_history.append(("human", msg["content"]))
+                    elif msg["role"] == "assistant":
+                        chat_history.append(("assistant", msg["content"]))
+                        
+                response_stream = pipeline.answer_question_stream(text_input, chat_history)
+                response = st.write_stream(response_stream)
+                    
+            st.session_state.messages.append({"role": "assistant", "content": response})
+            save_chat(st.session_state.current_chat_id, st.session_state.current_chat_title, st.session_state.messages)
+            st.rerun()
