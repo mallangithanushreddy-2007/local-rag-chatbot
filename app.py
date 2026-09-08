@@ -153,15 +153,23 @@ div[data-testid="element-container"]:has(#voice-assistant-anchor) + div[data-tes
     width: fit-content !important;
     z-index: 99 !important;
     margin-bottom: -40px !important; /* Pull it down slightly towards the input */
+    margin-left: auto !important; /* Push to the right side */
+    margin-right: 10px !important;
 }
 div[data-testid="element-container"]:has(#voice-assistant-anchor) + div[data-testid="element-container"] button {
-    background-color: #ffffff !important;
-    border: 1px solid #d2d2d2 !important;
-    border-radius: 20px !important;
-    color: #4285f4 !important;
-    font-weight: 500 !important;
-    box-shadow: 0 4px 6px rgba(0,0,0,0.1) !important;
-    padding: 4px 16px !important;
+    background-color: #000000 !important;
+    border: none !important;
+    border-radius: 50px !important; /* Circular/bubble shape */
+    color: #ffffff !important;
+    font-weight: 600 !important;
+    box-shadow: 0 8px 16px rgba(0,0,0,0.3) !important;
+    padding: 12px 24px !important;
+    transition: transform 0.2s ease, box-shadow 0.2s ease !important;
+}
+div[data-testid="element-container"]:has(#voice-assistant-anchor) + div[data-testid="element-container"] button:hover {
+    transform: translateY(-2px) !important;
+    box-shadow: 0 12px 20px rgba(0,0,0,0.4) !important;
+    color: #ffffff !important;
 }
 
 /* Make the volume button inline and seamless inside chat bubbles */
@@ -416,7 +424,7 @@ for i, message in enumerate(st.session_state.messages):
 
 # Voice Assistant Anchor
 st.markdown('<div id="voice-assistant-anchor"></div>', unsafe_allow_html=True)
-if st.button("🎙️ Voice Assistant"):
+if st.button("🎙️ Voice Assistance"):
     voice_assistant_dialog()
 
 # Chat input with inline file uploader and audio recorder
