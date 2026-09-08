@@ -417,9 +417,17 @@ if prompt or sidebar_audio:
                 
     # Handle audio input from chat or sidebar
     audio_source = getattr(prompt, "audio", None) if prompt else None
+    
+    # Prevent infinite loop from sidebar_audio retaining state
     if sidebar_audio:
-        audio_source = io.BytesIO(sidebar_audio['bytes'])
-        
+        current_audio_bytes = sidebar_audio['bytes']
+        if st.session_state.get("last_sidebar_audio") != current_audio_bytes:
+            st.session_state.last_sidebar_audio = current_audio_bytes
+            audio_source = io.BytesIO(current_audio_bytes)
+        else:
+            # Already processed this audio
+            sidebar_audio = None
+            
     if audio_source:
         with st.spinner("Transcribing audio..."):
             try:
@@ -436,6 +444,10 @@ if prompt or sidebar_audio:
         text_input = prompt.text
         
     if text_input:
+        # Clear old audio when a new message is sent
+        if "autoplay_response" in st.session_state:
+            st.session_state.autoplay_response = None
+            
         if sidebar_audio:
             # PURE VOICE MODE (No text on screen)
             with st.spinner("Thinking..."):
@@ -488,16 +500,7 @@ if st.session_state.get("autoplay_response"):
     with st.spinner("Generating audio..."):
         try:
             audio_bytes = get_tts_audio(st.session_state.autoplay_response)
-            import base64
-            audio_b64 = base64.b64encode(audio_bytes).decode()
-            audio_html = f'''
-                <div style="text-align:center; color:#60a5fa; margin-top:10px; font-weight: bold;">🤖 Audio generated (Click play if it doesn't autoplay)</div>
-                <audio autoplay="true" controls style="display: block; margin: 0 auto;">
-                    <source src="data:audio/mp3;base64,{audio_b64}" type="audio/mp3">
-                </audio>
-            '''
-            st.markdown(audio_html, unsafe_allow_html=True)
+            st.markdown('<div style="text-align:center; color:#60a5fa; margin-top:10px; font-weight: bold;">🤖 Audio Response (Click Play)</div>', unsafe_allow_html=True)
+            st.audio(audio_bytes, format="audio/mp3", autoplay=True)
         except Exception as e:
             st.error(f"TTS Error: {e}")
-    # Clear it so it doesn't loop on refresh
-    st.session_state.autoplay_response = None
