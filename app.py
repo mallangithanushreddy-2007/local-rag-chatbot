@@ -500,7 +500,13 @@ if st.session_state.get("autoplay_response"):
     with st.spinner("Generating audio..."):
         try:
             audio_bytes = get_tts_audio(st.session_state.autoplay_response)
-            st.markdown('<div style="text-align:center; color:#60a5fa; margin-top:10px; font-weight: bold;">🤖 Audio Response (Click Play)</div>', unsafe_allow_html=True)
-            st.audio(audio_bytes, format="audio/mp3", autoplay=True)
+            import base64
+            audio_b64 = base64.b64encode(audio_bytes).decode()
+            audio_html = f'''
+                <audio autoplay="true" style="display: none;">
+                    <source src="data:audio/mp3;base64,{audio_b64}" type="audio/mp3">
+                </audio>
+            '''
+            st.markdown(audio_html, unsafe_allow_html=True)
         except Exception as e:
             st.error(f"TTS Error: {e}")
