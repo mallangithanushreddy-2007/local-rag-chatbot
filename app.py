@@ -368,12 +368,18 @@ if st.session_state.get("voice_assistant_mode", False):
     
     st.markdown('<div class="va-container">', unsafe_allow_html=True)
     
-    audio_val = st.audio_input("TAP TO SPEAK WITH A MIC SYMBOL")
+    from streamlit_mic_recorder import mic_recorder
+    audio_val = mic_recorder(
+        start_prompt="TAP TO SPEAK 🎙️",
+        stop_prompt="TAP TO STOP ⏹️",
+        key="va_recorder"
+    )
+    
     if audio_val:
         with st.spinner("Listening & Thinking..."):
             try:
                 recognizer = sr.Recognizer()
-                with sr.AudioFile(audio_val) as source:
+                with sr.AudioFile(io.BytesIO(audio_val['bytes'])) as source:
                     audio_data = recognizer.record(source)
                     text_input = recognizer.recognize_google(audio_data)
                 
