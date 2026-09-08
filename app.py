@@ -11,176 +11,222 @@ from rag_pipeline import LocalRAGPipeline
 st.set_page_config(page_title="Local RAG Chatbot", page_icon="✨")
 
 def inject_custom_css():
-    st.markdown("""
+    theme = st.session_state.get("theme", "Light")
+    
+    # Common CSS (Layouts, structural)
+    common_css = """
+    /* Hide Streamlit header/footer */
+    #MainMenu {visibility: hidden;}
+    .st-emotion-cache-12fmjuu {visibility: hidden;}
+    
+    @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&display=swap');
+    html, body, [class*="css"] { font-family: 'DM Sans', sans-serif !important; }
+    
+    [data-testid="stChatMessage"] {
+        background-color: transparent !important;
+        border: none !important;
+        box-shadow: none !important;
+        padding: 0 !important;
+        margin-bottom: 24px !important;
+        display: flex !important;
+        width: 100% !important;
+    }
+    
+    [data-testid="stChatMessageAvatar"] { display: none !important; }
+    
+    [data-testid="stChatMessage"]:has(img[src*="image/png"]) { flex-direction: row-reverse !important; }
+    [data-testid="stChatMessage"]:has(img[src*="image/gif"]) { flex-direction: row !important; }
+    
+    [data-testid="stChatMessage"] [data-testid="stChatMessageContent"] {
+        padding: 12px 16px !important;
+        max-width: 80% !important;
+        flex-grow: 0 !important;
+    }
+    
+    [data-testid="stChatMessage"]:has(img[src*="image/png"]) [data-testid="stChatMessageContent"] {
+        border-radius: 18px !important;
+        border-bottom-left-radius: 18px !important;
+        border-bottom-right-radius: 4px !important;
+        margin-left: auto !important;
+    }
+    
+    [data-testid="stChatMessage"]:has(img[src*="image/gif"]) [data-testid="stChatMessageContent"] {
+        border-radius: 18px !important;
+        border-bottom-right-radius: 18px !important;
+        border-bottom-left-radius: 4px !important;
+        margin-right: auto !important;
+    }
+    
+    .stApp > header { background-color: transparent !important; }
+    
+    [data-testid="stChatInput"] {
+        border-radius: 32px !important;
+        padding: 12px 16px !important;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.05) !important;
+    }
+    
+    [data-testid="stChatInputSubmitButton"] svg { display: none !important; }
+    [data-testid="stChatInputSubmitButton"]::before {
+        content: "➔";
+        font-size: 24px;
+        font-weight: bold;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    div.stButton > button[kind="primary"] {
+        border-radius: 20px !important;
+    }
+    
+    [data-testid="stPopover"] > button {
+        background: transparent !important;
+        border: none !important;
+        padding: 0 !important;
+        font-size: 18px !important;
+        box-shadow: none !important;
+        min-width: auto !important;
+        width: 32px !important;
+        height: 32px !important;
+        border-radius: 50% !important;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+    
+    [data-testid="stChatMessage"] [data-testid="element-container"]:has(div.stButton) {
+        display: flex !important;
+        justify-content: flex-start !important;
+        width: 100% !important;
+    }
+    [data-testid="stChatMessage"] div.stButton {
+        display: flex !important;
+        justify-content: flex-start !important;
+        width: 100% !important;
+    }
+    [data-testid="stChatMessage"] div.stButton > button {
+        background: transparent !important;
+        border: none !important;
+        padding: 0 !important;
+        margin-top: 8px !important;
+        width: auto !important;
+        height: auto !important;
+        font-size: 20px !important;
+        box-shadow: none !important;
+        min-width: 0 !important;
+    }
+    """
+    
+    if theme == "Dark":
+        color_css = """
+        .stApp { background: linear-gradient(to top, rgba(15, 23, 42, 1) 0%, rgba(2, 6, 23, 1) 50%, rgba(2, 6, 23, 1) 100%) !important; }
+        .stMarkdown, p, h1, h2, h3, h4, h5, h6, span { color: #f8fafc !important; }
+        
+        /* User bubble (Dark) */
+        [data-testid="stChatMessage"]:has(img[src*="image/png"]) [data-testid="stChatMessageContent"] {
+            background-color: #334155 !important;
+            color: #f1f5f9 !important;
+        }
+        [data-testid="stChatMessage"]:has(img[src*="image/png"]) p { color: #f1f5f9 !important; }
+        
+        /* Assistant bubble (Dark Blue) */
+        [data-testid="stChatMessage"]:has(img[src*="image/gif"]) [data-testid="stChatMessageContent"] {
+            background-color: #2563eb !important;
+            color: #ffffff !important;
+        }
+        [data-testid="stChatMessage"]:has(img[src*="image/gif"]) p { color: #ffffff !important; }
+        [data-testid="stChatMessage"]:has(img[src*="image/gif"]) code {
+            color: #1e293b !important;
+            background-color: rgba(255, 255, 255, 0.8) !important;
+        }
+        
+        [data-testid="stChatInput"] {
+            background-color: #1e293b !important;
+            border: 1px solid #334155 !important;
+        }
+        [data-testid="stChatInput"] textarea { color: #f8fafc !important; }
+        [data-testid="stChatInputSubmitButton"]::before { color: #60a5fa !important; }
+        
+        div.stButton > button[kind="primary"] {
+            background-color: #1e293b !important;
+            border-color: #334155 !important;
+        }
+        div.stButton > button[kind="primary"] * {
+            color: #f8fafc !important;
+            font-weight: 500 !important;
+        }
+        
+        [data-testid="stPopover"] > button { color: #f1f5f9 !important; }
+        [data-testid="stPopover"] > button:hover { background: #334155 !important; }
+        
+        /* Sidebar styling for dark mode */
+        [data-testid="stSidebar"] {
+            background-color: #0f172a !important;
+        }
+        [data-testid="stSidebar"] * {
+            color: #f1f5f9 !important;
+        }
+        """
+    else:
+        color_css = """
+        .stApp { background: linear-gradient(to top, rgba(0, 153, 255, 0.8) 0%, rgba(255, 255, 255, 1) 50%, rgba(255, 255, 255, 1) 100%) !important; }
+        .stMarkdown, p, h1, h2, h3, h4, h5, h6, span { color: #1f1f1f !important; }
+        
+        /* User bubble (Light) */
+        [data-testid="stChatMessage"]:has(img[src*="image/png"]) [data-testid="stChatMessageContent"] {
+            background-color: #f0f2f6 !important;
+            color: #1f1f1f !important;
+        }
+        
+        /* Assistant bubble (Light Blue) */
+        [data-testid="stChatMessage"]:has(img[src*="image/gif"]) [data-testid="stChatMessageContent"] {
+            background-color: #4285f4 !important;
+            color: #ffffff !important;
+        }
+        [data-testid="stChatMessage"]:has(img[src*="image/gif"]) p { color: #ffffff !important; }
+        [data-testid="stChatMessage"]:has(img[src*="image/gif"]) code {
+            color: #1f1f1f !important;
+            background-color: rgba(255, 255, 255, 0.8) !important;
+        }
+        
+        [data-testid="stChatInput"] {
+            background-color: #ffffff !important;
+            border: 1px solid #e0e0e0 !important;
+        }
+        [data-testid="stChatInputSubmitButton"]::before { color: #4285f4 !important; }
+        
+        div.stButton > button[kind="primary"] {
+            background-color: #ffffff !important;
+            color: #1f1f1f !important;
+            border-color: #d2d2d2 !important;
+        }
+        div.stButton > button[kind="primary"] * {
+            color: #1f1f1f !important;
+            font-weight: 500 !important;
+        }
+        
+        [data-testid="stPopover"] > button { color: #1f1f1f !important; }
+        [data-testid="stPopover"] > button:hover { background: #e0e0e0 !important; }
+        """
+        
+    st.markdown(f"<style>{common_css}{color_css}</style>", unsafe_allow_html=True)
+    
+    # Title Color Logic
+    title_color = "#f8fafc" if theme == "Dark" else "#1f1f1f"
+    st.markdown(f"""
 <style>
-/* Hide Streamlit header/footer */
-#MainMenu {visibility: hidden;}
-.st-emotion-cache-12fmjuu {visibility: hidden;} /* Specific class for made with streamlit watermark if needed, or just let it be */
-
-/* Custom typography - Google Sans */
-@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&display=swap');
-html, body, [class*="css"] {
-    font-family: 'DM Sans', sans-serif !important;
-}
-
-/* Chat message bubbles: Custom Left/Right Layout */
-[data-testid="stChatMessage"] {
-    background-color: transparent !important;
-    border: none !important;
-    box-shadow: none !important;
-    padding: 0 !important;
-    margin-bottom: 24px !important;
-    display: flex !important;
-    width: 100% !important;
-}
-
-/* Hide the avatar container completely */
-[data-testid="stChatMessageAvatar"] {
-    display: none !important;
-}
-
-/* User Message Bubble (Right, Gray) */
-/* Targets the 1x1 PNG */
-[data-testid="stChatMessage"]:has(img[src*="image/png"]) {
-    flex-direction: row-reverse !important;
-}
-[data-testid="stChatMessage"]:has(img[src*="image/png"]) [data-testid="stChatMessageContent"] {
-    background-color: #f0f2f6 !important;
-    color: #1f1f1f !important;
-    border-radius: 18px !important;
-    border-bottom-left-radius: 18px !important;
-    border-bottom-right-radius: 4px !important;
-    padding: 12px 16px !important;
-    max-width: 80% !important;
-    flex-grow: 0 !important;
-    margin-left: auto !important;
-}
-
-/* Assistant Message Bubble (Left, Solid Blue) */
-/* Targets the 1x1 GIF */
-[data-testid="stChatMessage"]:has(img[src*="image/gif"]) {
-    flex-direction: row !important;
-}
-[data-testid="stChatMessage"]:has(img[src*="image/gif"]) [data-testid="stChatMessageContent"] {
-    background-color: #4285f4 !important;
-    color: #ffffff !important;
-    border-radius: 18px !important;
-    border-bottom-right-radius: 18px !important;
-    border-bottom-left-radius: 4px !important;
-    padding: 12px 16px !important;
-    max-width: 80% !important;
-    flex-grow: 0 !important;
-    margin-right: auto !important;
-}
-
-/* Ensure text inside assistant bubble stays readable */
-[data-testid="stChatMessage"]:has(img[src*="image/gif"]) p {
-    color: #ffffff !important;
-}
-[data-testid="stChatMessage"]:has(img[src*="image/gif"]) code {
-    color: #1f1f1f !important;
-    background-color: rgba(255, 255, 255, 0.8) !important;
-}
-
-/* Widen the main chat container and add custom gradient */
-.stApp {
-    background: linear-gradient(to top, rgba(0, 153, 255, 0.8) 0%, rgba(255, 255, 255, 1) 50%, rgba(255, 255, 255, 1) 100%) !important;
-}
-
-.stApp > header {
-    background-color: transparent !important;
-}
-
-/* Make the chat input clean for light mode */
-[data-testid="stChatInput"] {
-    border-radius: 32px !important;
-    background-color: #ffffff !important;
-    border: 1px solid #e0e0e0 !important;
-    padding: 12px 16px !important;
-    box-shadow: 0 2px 6px rgba(0,0,0,0.05) !important;
-}
-
-/* Change Streamlit chat input send button from Up Arrow to Right Arrow */
-[data-testid="stChatInputSubmitButton"] svg {
-    display: none !important;
-}
-[data-testid="stChatInputSubmitButton"]::before {
-    content: "➔";
-    font-size: 24px;
-    font-weight: bold;
-    color: #4285f4;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-/* Ensure New Conversation button text is readable */
-div.stButton > button[kind="primary"] {
-    background-color: #ffffff !important;
-    color: #1f1f1f !important;
-    border-color: #d2d2d2 !important;
-    border-radius: 20px !important;
-}
-div.stButton > button[kind="primary"] * {
-    color: #1f1f1f !important;
-    font-weight: 500 !important;
-}
-
-/* Style the 3-dots popover button */
-[data-testid="stPopover"] > button {
-    background: transparent !important;
-    border: none !important;
-    color: #1f1f1f !important;
-    padding: 0 !important;
-    font-size: 18px !important;
-    box-shadow: none !important;
-    min-width: auto !important;
-    width: 32px !important;
-    height: 32px !important;
-    border-radius: 50% !important;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-}
-[data-testid="stPopover"] > button:hover {
-    background: #e0e0e0 !important;
-}
-
-/* Make the volume button inline and seamless inside chat bubbles */
-[data-testid="stChatMessage"] [data-testid="element-container"]:has(div.stButton) {
-    display: flex !important;
-    justify-content: flex-start !important;
-    width: 100% !important;
-}
-[data-testid="stChatMessage"] div.stButton {
-    display: flex !important;
-    justify-content: flex-start !important;
-    width: 100% !important;
-}
-[data-testid="stChatMessage"] div.stButton > button {
-    background: transparent !important;
-    border: none !important;
-    padding: 0 !important;
-    margin-top: 8px !important;
-    width: auto !important;
-    height: auto !important;
-    box-shadow: none !important;
-    font-size: 20px !important;
-}
-[data-testid="stChatMessage"] div.stButton > button:hover {
-    background: transparent !important;
-    opacity: 0.8;
-}
-
-/* Gemini Gradient Title */
-.gemini-title {
+.gemini-title {{
     font-size: 48px;
     font-weight: 500;
-    background: -webkit-linear-gradient(74deg, #4285f4 0, #9b72cb 9%, #d96570 20%, #d96570 24%, #9b72cb 35%, #4285f4 44%, #9b72cb 50%, #d96570 56%, #131314 75%, #131314 100%);
+    color: {title_color} !important;
+    letter-spacing: -1px;
+    margin-bottom: 24px;
+}}
+.gemini-title span {{
+    background: linear-gradient(90deg, #4285f4, #d96570);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
-    margin-bottom: 8px;
-}
+}}
 </style>
 """, unsafe_allow_html=True)
 
@@ -242,6 +288,14 @@ def share_chat_dialog(chat_text):
 
 
 with st.sidebar:
+    st.markdown("### Theme")
+    theme_mode = st.radio("Theme", ["Light", "Dark"], horizontal=True, index=0 if st.session_state.get("theme", "Light") == "Light" else 1, label_visibility="collapsed")
+    if theme_mode != st.session_state.get("theme", "Light"):
+        st.session_state.theme = theme_mode
+        st.rerun()
+        
+    st.markdown("---")
+    
     if st.button("➕ New Conversation", use_container_width=True, type="primary"):
         st.session_state.messages = []
         st.session_state.current_chat_id = str(uuid.uuid4())
