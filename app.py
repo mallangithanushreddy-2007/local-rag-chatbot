@@ -150,11 +150,13 @@ div.stButton > button[kind="primary"] * {
 div[data-testid="element-container"]:has(#voice-assistant-anchor) + div[data-testid="element-container"] {
     position: sticky !important;
     bottom: 90px !important;
-    width: fit-content !important;
+    width: 100% !important;
     z-index: 99 !important;
     margin-bottom: -40px !important; /* Pull it down slightly towards the input */
-    margin-left: auto !important; /* Push to the right side */
-    margin-right: 10px !important;
+    display: flex !important;
+    justify-content: flex-end !important; /* Force to the right edge */
+    padding-right: 15px !important;
+    pointer-events: none !important; /* Prevent the full-width container from blocking clicks behind it */
 }
 div[data-testid="element-container"]:has(#voice-assistant-anchor) + div[data-testid="element-container"] button {
     background-color: #000000 !important;
@@ -165,6 +167,7 @@ div[data-testid="element-container"]:has(#voice-assistant-anchor) + div[data-tes
     box-shadow: 0 8px 16px rgba(0,0,0,0.3) !important;
     padding: 12px 24px !important;
     transition: transform 0.2s ease, box-shadow 0.2s ease !important;
+    pointer-events: auto !important; /* Re-enable clicks on the button itself */
 }
 div[data-testid="element-container"]:has(#voice-assistant-anchor) + div[data-testid="element-container"] button:hover {
     transform: translateY(-2px) !important;
