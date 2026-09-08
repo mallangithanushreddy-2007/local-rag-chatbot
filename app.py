@@ -356,7 +356,8 @@ if st.session_state.get("voice_assistant_mode", False):
     audio_val = mic_recorder(
         start_prompt="TAP TO SPEAK 🎙️",
         stop_prompt="TAP TO STOP ⏹️",
-        key="va_recorder"
+        key="va_recorder",
+        format="wav"
     )
     
     if audio_val:
