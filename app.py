@@ -441,7 +441,8 @@ if st.session_state.get("gpt_voice_mode", False):
                 import base64
                 audio_b64 = base64.b64encode(audio_bytes).decode()
                 audio_html = f'''
-                    <audio autoplay="true" style="display: none;">
+                    <div style="text-align:center; color:#60a5fa; margin-bottom:10px; font-weight: bold;">🤖 Audio generated (Click play if it doesn't autoplay)</div>
+                    <audio autoplay="true" controls style="display: block; margin: 0 auto;">
                         <source src="data:audio/mp3;base64,{audio_b64}" type="audio/mp3">
                     </audio>
                 '''
