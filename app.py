@@ -347,26 +347,10 @@ if st.session_state.get("voice_assistant_mode", False):
         }
         /* Hide default top header */
         header { display: none !important; }
-        
-        .va-container {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            height: 70vh;
-        }
-        .va-text {
-            color: white;
-            font-family: sans-serif;
-            font-size: 24px;
-            letter-spacing: 2px;
-            margin-top: 30px;
-            font-weight: bold;
-        }
         </style>
     """, unsafe_allow_html=True)
     
-    st.markdown('<div class="va-container">', unsafe_allow_html=True)
+    st.markdown("<br><br><br>", unsafe_allow_html=True)
     
     from streamlit_mic_recorder import mic_recorder
     audio_val = mic_recorder(
@@ -395,7 +379,6 @@ if st.session_state.get("voice_assistant_mode", False):
             except Exception as e:
                 st.error(f"Could not understand audio: {e}")
                 
-    st.markdown('</div>', unsafe_allow_html=True)
 else:
     # Display chat messages from history on app rerun
     for i, message in enumerate(st.session_state.messages):
