@@ -379,6 +379,9 @@ if "messages" not in st.session_state:
 
 # Display chat messages from history on app rerun
 for i, message in enumerate(st.session_state.messages):
+    if message.get("hidden", False):
+        continue
+        
     # Use the transparent image based on role
     avatar = USER_AVATAR if message["role"] == "user" else ASSISTANT_AVATAR
     with st.chat_message(message["role"], avatar=avatar):
@@ -433,30 +436,51 @@ if prompt or sidebar_audio:
         text_input = prompt.text
         
     if text_input:
-        if len(st.session_state.messages) == 0:
-            st.session_state.current_chat_title = text_input[:30] + ("..." if len(text_input) > 30 else "")
-            
-        st.chat_message("user", avatar=USER_AVATAR).markdown(text_input)
-        st.session_state.messages.append({"role": "user", "content": text_input})
-        save_chat(st.session_state.current_chat_id, st.session_state.current_chat_title, st.session_state.messages)
-
-        with st.chat_message("assistant", avatar=ASSISTANT_AVATAR):
-            chat_history = []
-            for msg in st.session_state.messages[:-1]:
-                if msg["role"] == "user":
-                    chat_history.append(("human", msg["content"]))
-                elif msg["role"] == "assistant":
-                    chat_history.append(("assistant", msg["content"]))
+        if sidebar_audio:
+            # PURE VOICE MODE (No text on screen)
+            with st.spinner("Thinking..."):
+                chat_history = []
+                for msg in st.session_state.messages:
+                    if msg.get("role") == "user":
+                        chat_history.append(("human", msg["content"]))
+                    elif msg.get("role") == "assistant":
+                        chat_history.append(("assistant", msg["content"]))
+                        
+                response_stream = pipeline.answer_question_stream(text_input, chat_history)
+                response = "".join([chunk for chunk in response_stream])
+                
+                # Save to history silently so memory is retained
+                if len(st.session_state.messages) == 0:
+                    st.session_state.current_chat_title = text_input[:30] + ("..." if len(text_input) > 30 else "")
+                st.session_state.messages.append({"role": "user", "content": text_input, "hidden": True})
+                st.session_state.messages.append({"role": "assistant", "content": response, "hidden": True})
+                save_chat(st.session_state.current_chat_id, st.session_state.current_chat_title, st.session_state.messages)
+                
+                # Trigger autoplay
+                st.session_state.autoplay_response = response
+                st.rerun()
+        else:
+            # NORMAL TEXT MODE
+            if len(st.session_state.messages) == 0:
+                st.session_state.current_chat_title = text_input[:30] + ("..." if len(text_input) > 30 else "")
+                
+            st.chat_message("user", avatar=USER_AVATAR).markdown(text_input)
+            st.session_state.messages.append({"role": "user", "content": text_input})
+            save_chat(st.session_state.current_chat_id, st.session_state.current_chat_title, st.session_state.messages)
+    
+            with st.chat_message("assistant", avatar=ASSISTANT_AVATAR):
+                chat_history = []
+                for msg in st.session_state.messages[:-1]:
+                    if msg.get("role") == "user":
+                        chat_history.append(("human", msg["content"]))
+                    elif msg.get("role") == "assistant":
+                        chat_history.append(("assistant", msg["content"]))
+                        
+                response_stream = pipeline.answer_question_stream(text_input, chat_history)
+                response = st.write_stream(response_stream)
                     
-            response_stream = pipeline.answer_question_stream(text_input, chat_history)
-            response = st.write_stream(response_stream)
             st.session_state.messages.append({"role": "assistant", "content": response})
             save_chat(st.session_state.current_chat_id, st.session_state.current_chat_title, st.session_state.messages)
-            
-            # If the user spoke to the voice agent, auto-play the response
-            if sidebar_audio:
-                st.session_state.autoplay_response = response
-                
             st.rerun()
 
 # Handle Auto-Play from Voice Agent
