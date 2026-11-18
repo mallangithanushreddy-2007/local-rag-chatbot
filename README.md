@@ -124,6 +124,9 @@ There is a distinct need for a completely self-hosted, air-gappable document int
 local-rag-chatbot/
 ├── .streamlit/
 │   └── config.toml           # Streamlit server and theme configuration
+├── assets/                   # Application preview screenshots for documentation
+│   ├── home_preview.png      # Welcome screen and sidebar navigation
+│   └── chat_preview.png      # Document QA with grounded context and TTS
 ├── chat_history/             # Persistent JSON conversation session records
 │   ├── 5a3401fb-....json     # Sample saved conversation transcript
 │   ├── e213a255-....json     # Sample saved conversation transcript
@@ -252,15 +255,28 @@ When a user submits a query:
 
 ## 13. Screenshots & Interface Overview
 
-| Feature | Description |
+### 1. Home Screen & Navigation
+The application features a clean, Gemini-inspired interface with dynamic Light/Dark theme switching, local model selection, chat history drawer, and a dedicated **Voice Agent** in the sidebar.
+
+<p align="center">
+  <img src="assets/home_preview.png" alt="Local RAG Chatbot - Home Screen" width="95%" style="border-radius: 8px; box-shadow: 0 4px 14px rgba(0,0,0,0.12);" />
+</p>
+
+### 2. Context-Grounded Document QA & Voice Output
+Users can attach documents directly via the chat composer. Assistant responses are strictly grounded in retrieved document context, complete with on-demand **Text-to-Speech (🔊 Read Aloud)** playback.
+
+<p align="center">
+  <img src="assets/chat_preview.png" alt="Local RAG Chatbot - Conversational QA" width="95%" style="border-radius: 8px; box-shadow: 0 4px 14px rgba(0,0,0,0.12);" />
+</p>
+
+| Component | Description |
 |---|---|
-| **Chat Interface** | Gemini-inspired conversational bubbles with distinct left/right alignments. |
-| **Theme Engine** | Sidebar toggle supporting high-contrast Light and modern Dark mode. |
-| **Chat History Drawer** | Multi-session management drawer with renaming, sharing, and deletion popovers. |
+| **Chat Interface** | Conversational bubbles with distinct user/assistant styling and responsive layout. |
+| **Theme Engine** | Instant Light/Dark toggle in the sidebar with customized CSS injection. |
+| **Chat History Drawer** | Multi-session management with individual JSON persistence, share dialog, and deletion. |
 | **Voice Agent** | Gradient-styled sidebar Voice Agent button for hands-free audio conversation. |
 | **Inline File Uploader** | Drag-and-drop document upload directly inside the bottom chat composer. |
-
-*(To add visual preview assets, capture screenshots of the running application and place them in an `assets/` directory.)*
+| **Audio Controls** | Interactive read-aloud buttons (`🔊`) for synthesized speech output via gTTS. |
 
 ---
 
